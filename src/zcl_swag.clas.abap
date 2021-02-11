@@ -131,6 +131,13 @@ CLASS zcl_swag DEFINITION
       IMPORTING
         !is_meta       TYPE ty_meta_internal
         !it_parameters TYPE abap_parmbind_tab .
+    METHODS json_generate
+      IMPORTING
+        !ig_data      TYPE any
+      RETURNING
+        VALUE(result) TYPE xstring
+      RAISING
+        zcx_ajson_error.
     METHODS validate_parameters
       IMPORTING
         !it_parameters TYPE ty_parameters_tt .
@@ -160,7 +167,7 @@ ENDCLASS.
 
 
 
-CLASS ZCL_SWAG IMPLEMENTATION.
+CLASS zcl_swag IMPLEMENTATION.
 
 
   METHOD build_parameters.
@@ -502,12 +509,14 @@ CLASS ZCL_SWAG IMPLEMENTATION.
 
   METHOD json_reply.
 
-    DATA: lv_data   TYPE xstring,
-          lo_writer TYPE REF TO cl_sxml_string_writer.
+    DATA:
+      lv_data        TYPE xstring,
+      lx_ajson_error TYPE REF TO zcx_ajson_error.
 
-    FIELD-SYMBOLS: <ls_meta>      LIKE LINE OF is_meta-parameters,
-                   <ls_parameter> LIKE LINE OF it_parameters,
-                   <lg_struc>     TYPE any.
+    FIELD-SYMBOLS:
+      <ls_meta>      LIKE LINE OF is_meta-parameters,
+      <ls_parameter> LIKE LINE OF it_parameters,
+      <lg_struc>     TYPE any.
 
 
     READ TABLE is_meta-parameters ASSIGNING <ls_meta>
@@ -517,12 +526,14 @@ CLASS ZCL_SWAG IMPLEMENTATION.
         WITH KEY name = <ls_meta>-sconame.
       ASSERT sy-subrc = 0.
 
-      lo_writer = cl_sxml_string_writer=>create( if_sxml=>co_xt_json ).
       ASSIGN <ls_parameter>-value->* TO <lg_struc>.
-      CALL TRANSFORMATION id
-        SOURCE data = <lg_struc>
-        RESULT XML lo_writer.
-      lv_data = lo_writer->get_output( ).
+
+      TRY.
+          lv_data = json_generate( <lg_struc> ).
+        CATCH zcx_ajson_error INTO lx_ajson_error.
+          mi_server->response->set_status( code = 500 reason = lx_ajson_error->get_text( ) ).
+          RETURN.
+      ENDTRY.
 
     ENDIF.
 
@@ -535,6 +546,29 @@ CLASS ZCL_SWAG IMPLEMENTATION.
               cv_data = lv_data ).
     ENDIF.
     mi_server->response->set_data( lv_data ).
+
+  ENDMETHOD.
+
+
+  METHOD json_generate.
+
+    DATA:
+      lo_ajson     TYPE REF TO zcl_ajson,
+      lv_json      TYPE string,
+      lo_converter TYPE REF TO cl_abap_conv_out_ce.
+
+    lo_ajson = zcl_ajson=>create_empty( zcl_ajson_mapping=>create_lower_case( ) ).
+
+    lo_ajson->set( iv_path = '/'
+                   iv_val = ig_data ).
+
+    lv_json = lo_ajson->stringify( ).
+
+    lo_converter = cl_abap_conv_out_ce=>create( ).
+
+    lo_converter->write( lv_json ).
+
+    result = lo_converter->get_buffer( ).
 
   ENDMETHOD.
 

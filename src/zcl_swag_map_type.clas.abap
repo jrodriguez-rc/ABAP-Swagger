@@ -46,7 +46,7 @@ ENDCLASS.
 
 
 
-CLASS ZCL_SWAG_MAP_TYPE IMPLEMENTATION.
+CLASS zcl_swag_map_type IMPLEMENTATION.
 
 
   METHOD constructor.
@@ -167,7 +167,7 @@ CLASS ZCL_SWAG_MAP_TYPE IMPLEMENTATION.
       ASSERT NOT <ls_component>-name IS INITIAL.
 
       lv_type = map_internal( <ls_component>-type ).
-      rv_type = rv_type && '"' && <ls_component>-name && '":{ ' && lv_type && ' }'.
+      rv_type = rv_type && '"' && to_lower( <ls_component>-name ) && '":{ ' && lv_type && ' }'.
 
       IF lv_index <> lines( lt_components ).
         rv_type = rv_type && ','.

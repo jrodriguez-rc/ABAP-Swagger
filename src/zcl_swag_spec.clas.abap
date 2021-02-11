@@ -385,11 +385,11 @@ CLASS ZCL_SWAG_SPEC IMPLEMENTATION.
       lv_type = lo_map->map( ).
 
       APPEND '"schema": {' TO lt_string.
-      lv_string = |"$ref": "#/definitions/{ <ls_parameter>-type }"|.
+      lv_string = |"$ref": "#/definitions/{ to_lower( <ls_parameter>-type ) }"|.
       APPEND lv_string TO lt_string.
       APPEND '}' TO lt_string.
 
-      lv_string = |"{ <ls_parameter>-type }":\{"type": "object","properties": \{"DATA": \{{ lv_type }\}\}\}|.
+      lv_string = |"{ to_lower( <ls_parameter>-type ) }":\{{ lv_type }\}|.
       APPEND lv_string TO mt_definitions.
     ENDLOOP.
 
